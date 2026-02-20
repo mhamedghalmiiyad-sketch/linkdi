@@ -4,10 +4,8 @@ import os from "os";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import nodemailer from "nodemailer"; 
-import express from "express"; // 🌍 NEW: Added Express for Render
+import express from "express"; 
 
-// --- 🌍 RENDER DUMMY WEB SERVER ---
-// Render requires a Web Service to bind to a PORT, or it will crash the app.
 const app = express();
 const PORT = process.env.PORT || 10000;
 app.get("/", (req, res) => res.send("🤖 WORM-AI LinkedIn Bot is running smoothly!"));
@@ -17,7 +15,6 @@ app.listen(PORT, () => {
 
 puppeteer.use(StealthPlugin());
 
-// --- 1. AUTO-LOAD .ENV FILE ---
 function loadEnv() {
     try {
         const envPath = path.resolve(process.cwd(), '.env');
@@ -37,7 +34,6 @@ function loadEnv() {
 }
 loadEnv(); 
 
-// --- 💀 CONFIGURATION ---
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8208284802:AAFZz3Zn3JmChwYto3u2du-wO9IxTHKAQbc";
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "@jobscrapredz"; 
 const COOKIE_FILE = "linkedin_cookies.txt"; 
@@ -46,63 +42,28 @@ const STATS_FILE = "bot_stats.json";
 const EMAIL = "ghalmimiyad@gmail.com";
 const PASSWORD = "aezakmixu";
 
-// --- 🧠 AI API CONFIG ---
 const AI_API_URL = process.env.AI_API_URL || "https://linkedin-ai-api-ohjr.onrender.com/chat"; 
 const AI_API_KEY = "20262025"; 
 
-// --- 🎯 PRO-LEVEL KEYWORD STRATEGY ---
 const KEYWORDS = {
-    field: [
-        "automation", "automatisme", "plc", "siemens", "tia portal", "scada", "hmi", 
-        "maintenance industrielle", "electrique", "électrique", "electrical", "electricity", "electricité",
-        "instrumentation", "commissioning", "ingénieur automatique", "technicien maintenance",
-        "gmao", "électrotechnique", "instrumentiste", "solaire", "photovoltaïque", 
-        "schneider", "allen bradley", "simatic", "wincc"
-    ],
-    context: [
-        "we are hiring", "hiring now", "job opening", "job opportunity", "career opportunity", 
-        "vacancy", "open position", "now recruiting", "join our team", "urgently hiring", "immediate hiring",
-        "apply now", "submit your cv", "send your resume", "resume required", "cv required", "job application",
-        "nous recrutons", "recrutement", "offre d'emploi", "opportunité d'emploi", "poste à pourvoir", 
-        "avis de recrutement", "recherche profil", "recherche candidat", "rejoignez notre équipe", 
-        "embauche immédiate", "envoyez votre cv", "merci d'envoyer votre cv", "candidature", 
-        "déposer votre candidature", "postulez maintenant", "cv exigé", "expérience exigée", "cdi", "cdd",
-        "توظيف", "نبحث عن", "مطلوب", "فرصة عمل", "عرض عمل", "منصب شاغر", "إعلان توظيف", 
-        "أرسل سيرتك الذاتية", "يرجى إرسال cv", "قدم الآن", "تقديم طلب", "السيرة الذاتية",
-        "rana nrecrutiw", "rana nlawjou", "kayen poste", "poste vacant", "sifti cv", 
-        "dir candidature", "stage disponible"
-    ],
-    blacklist: [
-        "j'ai le plaisir", "heureux de vous annoncer", "j'occupe désormais", "nouvelle aventure", 
-        "nouveau poste", "starting a new position", "happy to share", "thrilled to announce", 
-        "j'ai rejoint", "promotion", "promu", "certificat", "certification", "j'ai l'honneur",
-        "diplôme", "graduated", "proud to share", "i am excited",
-        "sales", "commercial", "rh", "ressources humaines", "finance", "comptable", 
-        "marketing", "stagiaire rh", "assistant", "administratif", "graphic", "designer"
-    ]
+    field: ["automation", "automatisme", "plc", "siemens", "tia portal", "scada", "hmi", "maintenance industrielle", "electrique", "électrique", "electrical", "electricity", "electricité", "instrumentation", "commissioning", "ingénieur automatique", "technicien maintenance", "gmao", "électrotechnique", "instrumentiste", "solaire", "photovoltaïque", "schneider", "allen bradley", "simatic", "wincc"],
+    context: ["we are hiring", "hiring now", "job opening", "job opportunity", "career opportunity", "vacancy", "open position", "now recruiting", "join our team", "urgently hiring", "immediate hiring", "apply now", "submit your cv", "send your resume", "resume required", "cv required", "job application", "nous recrutons", "recrutement", "offre d'emploi", "opportunité d'emploi", "poste à pourvoir", "avis de recrutement", "recherche profil", "recherche candidat", "rejoignez notre équipe", "embauche immédiate", "envoyez votre cv", "merci d'envoyer votre cv", "candidature", "déposer votre candidature", "postulez maintenant", "cv exigé", "expérience exigée", "cdi", "cdd", "توظيف", "نبحث عن", "مطلوب", "فرصة عمل", "عرض عمل", "منصب شاغر", "إعلان توظيف", "أرسل سيرتك الذاتية", "يرجى إرسال cv", "قدم الآن", "تقديم طلب", "السيرة الذاتية", "rana nrecrutiw", "rana nlawjou", "kayen poste", "poste vacant", "sifti cv", "dir candidature", "stage disponible"],
+    blacklist: ["j'ai le plaisir", "heureux de vous annoncer", "j'occupe désormais", "nouvelle aventure", "nouveau poste", "starting a new position", "happy to share", "thrilled to announce", "j'ai rejoint", "promotion", "promu", "certificat", "certification", "j'ai l'honneur", "diplôme", "graduated", "proud to share", "i am excited", "sales", "commercial", "rh", "ressources humaines", "finance", "comptable", "marketing", "stagiaire rh", "assistant", "administratif", "graphic", "designer"]
 };
 
-// --- 🛠️ UTILS ---
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
 
-// 🕒 TIME FORMATTER
 function getTimestamp() {
     return new Date().toISOString().replace('T', ' ').substring(0, 19);
 }
 
-// 📂 STATE MANAGEMENT
 let seenHistory = new Set();
-if (fs.existsSync(SEEN_FILE)) {
-    try { seenHistory = new Set(JSON.parse(fs.readFileSync(SEEN_FILE))); } catch(e) {}
-}
+if (fs.existsSync(SEEN_FILE)) { try { seenHistory = new Set(JSON.parse(fs.readFileSync(SEEN_FILE))); } catch(e) {} }
 function saveHistory() { fs.writeFileSync(SEEN_FILE, JSON.stringify([...seenHistory])); }
 
-// 📊 STATS TRACKER
 let botStats = { totalScanned: 0, matchedJobs: 0, emailsSent: 0, jobsLog: [] };
-if (fs.existsSync(STATS_FILE)) {
-    try { botStats = JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8')); } catch(e) {}
-}
+if (fs.existsSync(STATS_FILE)) { try { botStats = JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8')); } catch(e) {} }
 function saveStats() {
     botStats.lastUpdate = getTimestamp();
     if (botStats.jobsLog.length > 100) botStats.jobsLog.shift();
@@ -116,40 +77,17 @@ function printResources() {
 }
 
 async function sendResumeEmail(targetEmail, jobTitle, emailBody) {
-    if (!process.env.GMAIL_APP_PASSWORD) {
-        console.error(`[${getTimestamp()}] ❌ [Email] GMAIL_APP_PASSWORD missing in .env file!`);
-        return false;
-    }
-
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: EMAIL, pass: process.env.GMAIL_APP_PASSWORD }
-    });
-
+    if (!process.env.GMAIL_APP_PASSWORD) { console.error(`[${getTimestamp()}] ❌ [Email] GMAIL_APP_PASSWORD missing!`); return false; }
+    const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: EMAIL, pass: process.env.GMAIL_APP_PASSWORD } });
     const subjectLine = `Candidature - ${jobTitle} - GHALMI Mohamed Ayad +213 540 17 83 42 LinkedIn`;
-
-    const mailOptions = {
-        from: `"GHALMI Mohamed Ayad" <${EMAIL}>`,
-        to: targetEmail,
-        subject: subjectLine,
-        text: emailBody,
-        attachments: [{ filename: 'CV_Ghalmi_Mohamed_Ayad.pdf', path: './CV_Ghalmi_Mohamed_Ayad.pdf' }]
-    };
-
-    try {
-        await transporter.sendMail(mailOptions);
-        return true;
-    } catch (error) {
-        console.error(`[${getTimestamp()}] ❌ [Email Error]`, error.message);
-        return false;
-    }
+    const mailOptions = { from: `"GHALMI Mohamed Ayad" <${EMAIL}>`, to: targetEmail, subject: subjectLine, text: emailBody, attachments: [{ filename: 'CV_Ghalmi_Mohamed_Ayad.pdf', path: './CV_Ghalmi_Mohamed_Ayad.pdf' }] };
+    try { await transporter.sendMail(mailOptions); return true; } catch (error) { console.error(`[${getTimestamp()}] ❌ [Email Error]`, error.message); return false; }
 }
 
 async function sendTelegramMessage({ token, chatId, textHtml }, retries = 3) {
     if (!token) return false;
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
     const body = { chat_id: chatId, text: textHtml, parse_mode: "HTML", disable_web_page_preview: true };
-    
     for (let i = 0; i < retries; i++) {
         try {
             const controller = new AbortController();
@@ -168,16 +106,9 @@ function escapeHtml(s) { return String(s || "").replaceAll("&", "&amp;").replace
 async function verifyWithAI(postText) {
     try {
         console.log(`[${getTimestamp()}] 🤖 Asking AI for verification & email generation...`);
-        const response = await fetch(AI_API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-api-key": AI_API_KEY },
-            body: JSON.stringify({ question: postText })
-        });
-
+        const response = await fetch(AI_API_URL, { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": AI_API_KEY }, body: JSON.stringify({ question: postText }) });
         if (!response.ok) return { isGenuine: false };
-
         const data = await response.json();
-        
         if (data.answer === "YES") {
             console.log(`[${getTimestamp()}] 🤖 AI Decision: YES | Job: ${data.title}`);
             return { isGenuine: true, title: data.title, emailBody: data.email_body };
@@ -189,16 +120,37 @@ async function verifyWithAI(postText) {
 }
 
 (async () => {
-    console.log(`[${getTimestamp()}] 💀 WORM-AI: AUTOPILOT APPLICATION MODE ACTIVATED`);
+    console.log(`[${getTimestamp()}] 💀 WORM-AI: EXTREME LOW-MEMORY MODE ACTIVATED`);
 
     const browser = await puppeteer.launch({
         headless: "new", 
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-notifications", "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1366,768"]
+        args: [
+            "--no-sandbox", 
+            "--disable-setuid-sandbox", 
+            "--disable-dev-shm-usage", 
+            "--disable-gpu", 
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-accelerated-2d-canvas",
+            "--disable-features=site-per-process", // CRITICAL FOR RAM
+            "--window-size=1366,768"
+        ]
     });
 
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(90000);
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8' });
+
+    // 🛑 THE RAM SAVER: Block Images, Videos, Fonts, and CSS
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+        const type = request.resourceType();
+        if (type === 'image' || type === 'stylesheet' || type === 'font' || type === 'media') {
+            request.abort();
+        } else {
+            request.continue();
+        }
+    });
 
     await page.evaluateOnNewDocument(() => {
         window.extractedLink = null;
@@ -244,7 +196,7 @@ async function verifyWithAI(postText) {
     let currentUrl = page.url();
     if (!currentUrl.includes("/feed") && !currentUrl.includes("/in/")) {
         console.log(`[${getTimestamp()}] 🔓 Checking standard login...`);
-        await page.goto("https://www.linkedin.com/login");
+        await page.goto("https://www.linkedin.com/login", { waitUntil: "domcontentloaded" });
         await sleep(3000);
         const userField = await page.waitForSelector('#username', { timeout: 5000 }).catch(() => null);
         if (userField) {
@@ -256,7 +208,7 @@ async function verifyWithAI(postText) {
             ]);
             fs.writeFileSync(COOKIE_FILE, JSON.stringify(await page.cookies(), null, 2));
         } else {
-            await page.goto("https://www.linkedin.com/feed/");
+            await page.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
         }
     }
 
