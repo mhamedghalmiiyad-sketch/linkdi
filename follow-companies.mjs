@@ -8,10 +8,11 @@ import express from "express";
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-app.get("/", (req, res) => res.send("🤖 WORM-AI LinkedIn Bot is running smoothly!"));
-app.listen(PORT, () => {
+// Added 0.0.0.0 to ensure Render recognizes the web server immediately
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`[${getTimestamp()}] 🌍 Dummy Web Server started on port ${PORT}`);
 });
+app.get("/", (req, res) => res.send("🤖 WORM-AI LinkedIn Bot is running smoothly!"));
 
 puppeteer.use(StealthPlugin());
 
@@ -54,9 +55,7 @@ const KEYWORDS = {
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
 
-function getTimestamp() {
-    return new Date().toISOString().replace('T', ' ').substring(0, 19);
-}
+function getTimestamp() { return new Date().toISOString().replace('T', ' ').substring(0, 19); }
 
 let seenHistory = new Set();
 if (fs.existsSync(SEEN_FILE)) { try { seenHistory = new Set(JSON.parse(fs.readFileSync(SEEN_FILE))); } catch(e) {} }
@@ -77,11 +76,11 @@ function printResources() {
 }
 
 async function sendResumeEmail(targetEmail, jobTitle, emailBody) {
-    if (!process.env.GMAIL_APP_PASSWORD) { console.error(`[${getTimestamp()}] ❌ [Email] GMAIL_APP_PASSWORD missing!`); return false; }
+    if (!process.env.GMAIL_APP_PASSWORD) return false;
     const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: EMAIL, pass: process.env.GMAIL_APP_PASSWORD } });
     const subjectLine = `Candidature - ${jobTitle} - GHALMI Mohamed Ayad +213 540 17 83 42 LinkedIn`;
     const mailOptions = { from: `"GHALMI Mohamed Ayad" <${EMAIL}>`, to: targetEmail, subject: subjectLine, text: emailBody, attachments: [{ filename: 'CV_Ghalmi_Mohamed_Ayad.pdf', path: './CV_Ghalmi_Mohamed_Ayad.pdf' }] };
-    try { await transporter.sendMail(mailOptions); return true; } catch (error) { console.error(`[${getTimestamp()}] ❌ [Email Error]`, error.message); return false; }
+    try { await transporter.sendMail(mailOptions); return true; } catch (e) { return false; }
 }
 
 async function sendTelegramMessage({ token, chatId, textHtml }, retries = 3) {
@@ -122,6 +121,7 @@ async function verifyWithAI(postText) {
 (async () => {
     console.log(`[${getTimestamp()}] 💀 WORM-AI: EXTREME LOW-MEMORY MODE ACTIVATED`);
 
+    // ☢️ NUCLEAR CHROME ARGUMENTS TO SAVE RAM ☢️
     const browser = await puppeteer.launch({
         headless: "new", 
         args: [
@@ -129,11 +129,14 @@ async function verifyWithAI(postText) {
             "--disable-setuid-sandbox", 
             "--disable-dev-shm-usage", 
             "--disable-gpu", 
-            "--no-first-run",
             "--no-zygote",
-            "--disable-accelerated-2d-canvas",
-            "--disable-features=site-per-process", // CRITICAL FOR RAM
-            "--window-size=1366,768"
+            "--disable-site-isolation-trials", // Saves huge RAM
+            "--renderer-process-limit=1",      // Forces Chrome to use 1 tab memory
+            "--js-flags=--max-old-space-size=256", // Chokes JS memory limit
+            "--window-size=800,600",           // Tiny resolution
+            "--mute-audio",
+            "--disable-extensions",
+            "--disable-background-networking"
         ]
     });
 
@@ -141,11 +144,12 @@ async function verifyWithAI(postText) {
     page.setDefaultNavigationTimeout(90000);
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8' });
 
-    // 🛑 THE RAM SAVER: Block Images, Videos, Fonts, and CSS
+    // 🛑 AGGRESSIVE TRAFFIC BLOCKING
     await page.setRequestInterception(true);
     page.on('request', (request) => {
         const type = request.resourceType();
-        if (type === 'image' || type === 'stylesheet' || type === 'font' || type === 'media') {
+        // Block absolutely everything that isn't raw text code
+        if (['image', 'stylesheet', 'font', 'media', 'websocket', 'manifest', 'other'].includes(type)) {
             request.abort();
         } else {
             request.continue();
@@ -217,7 +221,8 @@ async function verifyWithAI(postText) {
     let lastCount = 0;
 
     for (let i = 0; i < 100000; i++) { 
-        if (i > 0 && i % 200 === 0) {
+        // 🛑 NEW: Aggressive Memory Dump every 100 pulses instead of 200
+        if (i > 0 && i % 100 === 0) {
             console.log(`\n[${getTimestamp()}] 🔄 [RESET] Refreshing feed to clear RAM...`);
             try {
                 await page.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
@@ -308,13 +313,7 @@ async function verifyWithAI(postText) {
                     }
 
                     botStats.matchedJobs++;
-                    botStats.jobsLog.push({
-                        time: getTimestamp(),
-                        company: postData.company,
-                        jobTitle: aiResult.title,
-                        emailSent: emailSentSuccessfully,
-                        targetEmail: emailTargetUsed
-                    });
+                    botStats.jobsLog.push({ time: getTimestamp(), company: postData.company, jobTitle: aiResult.title, emailSent: emailSentSuccessfully, targetEmail: emailTargetUsed });
                     saveStats();
 
                     await sendTelegramMessage({ token: TELEGRAM_BOT_TOKEN, chatId: TELEGRAM_CHAT_ID, textHtml: telegramMsg });
@@ -328,6 +327,8 @@ async function verifyWithAI(postText) {
             setTimeout(() => t.scrollBy(0, -50), 600); 
         }, stalePulses > 3);
         
+        // 🧹 Force Garbage Collection to keep RAM low
+        if (global.gc) global.gc();
         await sleep(rand(4000, 7000));
     }
 })();
