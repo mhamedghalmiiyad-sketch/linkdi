@@ -1,0 +1,15 @@
+{
+  "totalScanned": 469,
+  "matchedJobs": 1,
+  "emailsSent": 1,
+  "jobsLog": [
+    {
+      "time": "2026-02-20 15:22:35",
+      "company": "Unknown Source",
+      "jobTitle": "Responsable Technique (Production & Maintenance)",
+      "emailSent": true,
+      "targetEmail": "easyadvising@outlook.com"
+    }
+  ],
+  "lastUpdate": "2026-02-20 16:46:57"
+}
